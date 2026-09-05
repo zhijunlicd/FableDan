@@ -1,4 +1,6 @@
 # -*- coding: utf-8 -*-
+# Modified by the Guandan_opencode project: suit-aware experimental fork.
+# See ../README.md for changes and ../LICENSE for upstream terms.
 """FableDan Q-network (PyTorch): tiny Llama-style causal encoder over the
 game-history token stream + hand/action MLP + Q head (+ optional NTP head).
 
@@ -12,7 +14,7 @@ import torch
 import torch.nn as nn
 import torch.nn.functional as F
 
-from .encode import FEAT_DIM, MAX_SEQ, PAD_TOK, VOCAB
+from .encode import FEAT_DIM, MAX_SEQ, PAD_TOK, VOCAB, SCHEMA_VERSION
 
 
 class ModelConfig:
@@ -20,6 +22,7 @@ class ModelConfig:
                  v_dim=64, ffn_hidden=512, hand_hidden=512, n_hand_layers=3,
                  q_hidden=1024, n_q_layers=3, max_seq=MAX_SEQ,
                  ntp_weight=0.02, vocab=VOCAB, feat_dim=FEAT_DIM):
+        self.schema_version = SCHEMA_VERSION
         self.d_model = d_model
         self.n_blocks = n_blocks
         self.n_heads = n_heads
@@ -40,6 +43,8 @@ class ModelConfig:
 
     @classmethod
     def from_dict(cls, d):
+        if d.get("schema_version") != SCHEMA_VERSION or d.get("feat_dim") != FEAT_DIM or d.get("vocab") != VOCAB:
+            raise ValueError("Incompatible model schema; retrain with guandan-suits-v1")
         c = cls()
         for k, v in d.items():
             if hasattr(c, k):
@@ -218,7 +223,7 @@ def save_ckpt(model, optimizer, meta, path):
 
 
 def load_ckpt(path, device="cpu"):
-    ck = torch.load(path, map_location=device, weights_only=False)
+    ck = torch.load(path, map_location=device, weights_only=True)
     cfg = ModelConfig.from_dict(ck["config"])
     model = FableDanNet(cfg).to(device)
     model.load_state_dict(ck["model"])

@@ -40,3 +40,8 @@ Thumbs.db
 *.log
 *.tmp
 *.swp
+
+.venv/
+runs/
+__pycache__/
+*.py[cod]
