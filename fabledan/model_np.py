@@ -1,4 +1,6 @@
 # -*- coding: utf-8 -*-
+# Modified by the Guandan_opencode project: suit-aware experimental fork.
+# See ../README.md for changes and ../LICENSE for upstream terms.
 """Pure-numpy inference of FableDanNet (for Botzone deployment & sandbox).
 
 Loads the .npz produced by model_torch.export_npz. Single-sequence forward.
@@ -7,6 +9,8 @@ Memory: uses float32 throughout (no float64 upcast) to stay under Botzone's
 256 MB sandbox limit.  Peak allocation ~20 MB for a 512-token sequence with
 ~100 legal moves.
 """
+
+from .encode import SCHEMA_VERSION, FEAT_DIM, VOCAB
 
 import gc
 
@@ -51,6 +55,8 @@ class NumpyModel:
                         cfg[k] = float(v)
                     except ValueError:
                         cfg[k] = v
+        if cfg.get("schema_version") != SCHEMA_VERSION or cfg.get("feat_dim") != FEAT_DIM or cfg.get("vocab") != VOCAB:
+            raise ValueError("Incompatible model schema; retrain with guandan-suits-v1")
         self.cfg = cfg
         self.n_blocks = int(cfg.get("n_blocks", 4))
         self.n_heads = int(cfg.get("n_heads", 4))

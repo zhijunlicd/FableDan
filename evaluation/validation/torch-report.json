@@ -1,0 +1,20 @@
+{
+  "schema": "fabledan-torch-reference-v1",
+  "torch": "2.14.0",
+  "numpy": "2.5.2",
+  "device": "cpu",
+  "cases": 855,
+  "actions": 20073,
+  "npzWeightsExact": true,
+  "maxTorchNumpyError": 2.4219646860279553e-07,
+  "exactArgmax": 855,
+  "newTorchRun": true,
+  "checkpointMeta": {
+    "seed": 7,
+    "rounds": 2,
+    "smoke_only": true
+  },
+  "checkpointSha256": "c86264fbbe271571bc9a8fc08b388a87acb85fdbfd22cc701fd86dc63d1aba81",
+  "npzSha256": "c5b471e12ac4fc5a55346c616b91f171a62ba464b90a862dd8b5c27980f9f8da",
+  "strengthValidated": false
+}

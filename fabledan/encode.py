@@ -1,20 +1,12 @@
 # -*- coding: utf-8 -*-
+# Modified by the Guandan_opencode project: suit-aware experimental fork.
+# See ../README.md for changes and ../LICENSE for upstream terms.
 """State/action encoding shared by training (torch) and inference (numpy).
 
-Token vocabulary (size 48):
-  0  PAD
-  1  BOS
-  2..14   level token (level rank 0..12)
-  15..18  player token (relative seat: 0=self, 1=next, 2=partner, 3=prev)
-  19..29  move-type tokens (PASS..ROCKET, see combos)
-  30  TRIBUTE   31  RETURN
-  32..46  rank tokens (A..K, sj, BJ)
-  47  (reserved)
-
-A play event emits  [P, TYPE, rank...claim ranks sorted].
-A pass emits        [P, PASS].
-Tribute/return emit [P, TRIBUTE/RETURN, rank].
-Sequence starts with [BOS, LEVEL].
+Fork schema guandan-suits-v1: original rank/type tokens plus physical card
+identities (48..101) and a physical-card marker (102). Tribute events include
+actual cards and receiver seats. Feature vectors preserve played-card suit
+counts even when old sequence tokens are truncated.
 """
 
 import numpy as np
@@ -22,7 +14,10 @@ import numpy as np
 from .cards import NUM_RANKS, is_wildcard, order_of, rank_of
 from .combos import PASS, TYPE_NAMES
 
-VOCAB = 48
+SCHEMA_VERSION = "guandan-suits-v1"
+CARD_BASE = 48
+PHYSICAL_TOK = 102
+VOCAB = 103
 PAD_TOK, BOS_TOK = 0, 1
 LEVEL_BASE = 2
 PLAYER_BASE = 15
@@ -48,7 +43,8 @@ FEAT_DIM = (
     + N_TYPES  # current lead type one-hot (all 0 if leading)
     + 1     # lead key /15
     + 1     # leading flag
-)  # = 80
+    + 54 * 6  # physical hand, action and played cards by relative seat
+)
 
 
 def tokenize(events, viewer, level):
@@ -66,17 +62,18 @@ def tokenize(events, viewer, level):
             toks.append(TYPE_BASE + mv.type)
             for r in sorted(mv.claim_ranks):
                 toks.append(RANK_BASE + r)
+            toks += [PHYSICAL_TOK] + [CARD_BASE + c % 54 for c in sorted(mv.cards, key=lambda c: c % 54)]
         elif kind == 'tribute':
-            toks += [PLAYER_BASE + p, TRIBUTE_TOK, RANK_BASE + ev[2]]
+            toks += [PLAYER_BASE + p, TRIBUTE_TOK, CARD_BASE + ev[2] % 54, PLAYER_BASE + (ev[3] - viewer) % 4]
         elif kind == 'return':
-            toks += [PLAYER_BASE + p, RETURN_TOK, RANK_BASE + ev[2]]
+            toks += [PLAYER_BASE + p, RETURN_TOK, CARD_BASE + ev[2] % 54, PLAYER_BASE + (ev[3] - viewer) % 4]
     if len(toks) > MAX_SEQ:
         toks = toks[:2] + toks[-(MAX_SEQ - 2):]
     return toks
 
 
 def hand_action_features(obs, move):
-    """69-dim float32 features for (state-side hand info, candidate move)."""
+    """Suit-aware float32 features for (state-side hand info, candidate move)."""
     lv = obs["level"]
     me = obs["player"]
     f = np.zeros(FEAT_DIM, dtype=np.float32)
@@ -108,6 +105,18 @@ def hand_action_features(obs, move):
     else:
         f[i + N_TYPES + 1] = 1.0  # leading
     i += N_TYPES + 2
+    for c in obs["hand"]:
+        f[i + c % 54] += 0.5
+    i += 54
+    for c in move.cards:
+        f[i + c % 54] += 0.5
+    i += 54
+    for ev in obs["events"]:
+        if ev[0] == "play":
+            rel = (ev[1] - me) % 4
+            for c in ev[2].cards:
+                f[i + rel * 54 + c % 54] += 0.5
+    i += 216
     assert i == FEAT_DIM
     return f
 
@@ -130,7 +139,7 @@ def pad_tokens(toks, length=None):
 # flat encoding (for the numpy MLP demo model / fallback)
 # ---------------------------------------------------------------------------
 
-FLAT_DIM = FEAT_DIM + 4 * 15 + N_TYPES + 15 + 1   # 80+60+11+15+1 = 167
+FLAT_DIM = FEAT_DIM + 4 * 15 + N_TYPES + 15 + 1   # suit-aware base plus rank history
 
 
 def encode_flat(obs, move):

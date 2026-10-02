@@ -1,4 +1,6 @@
 # -*- coding: utf-8 -*-
+# Modified by the Guandan_opencode project: suit-aware experimental fork.
+# See ../README.md for changes and ../LICENSE for upstream terms.
 """Move (一手牌) representation, enumeration with wildcards (配子), comparison.
 
 Move types and fixed sizes:
@@ -144,12 +146,9 @@ def claim_ids(move):
     out = []
     force_suit = None
     if move.type == SFLUSH:
-        for c, r in zip(move.cards, move.claim_ranks):
-            if rank_of(c) == r:
-                force_suit = suit_of(c)
-                break
-        if force_suit is None:
-            force_suit = 0
+        from collections import Counter
+        suits = Counter(suit_of(c) for c in move.cards if suit_of(c) >= 0)
+        force_suit = suits.most_common(1)[0][0] if suits else 0
     for c, r in zip(move.cards, move.claim_ranks):
         if rank_of(c) == r and (force_suit is None or suit_of(c) == force_suit):
             out.append(c)
@@ -165,160 +164,6 @@ def claim_ids(move):
         if out[i] is None:
             out[i] = _claim_card_for_rank(r, used, force_suit, avoid_suit)
     return out
-
-
-def gen_moves(cards, lv, lead=None):
-    """All legal moves for `cards` under level `lv` against `lead`.
-
-    lead=None -> leading: all combos (no PASS).
-    else      -> PASS + all moves beating lead.
-    """
-    h = HandIndex(cards, lv)
-    out = []
-
-    def add(mtype, key, picked, claim):
-        out.append(Move(mtype, key, picked, claim))
-
-    # --- singles ---
-    for r in range(NUM_RANKS):
-        if h.cnt[r] > 0:
-            add(SINGLE, order_of(r, lv), [h.by_rank[r][0]], [r])
-    if h.w > 0 and h.cnt[lv] == 0:
-        add(SINGLE, order_of(lv, lv), [h.wilds[0]], [lv])
-
-    # --- pairs ---
-    for r in range(13):
-        if h.cnt[r] >= 2:
-            add(PAIR, order_of(r, lv), h.by_rank[r][:2], [r, r])
-        elif h.cnt[r] == 1 and h.w >= 1:
-            add(PAIR, order_of(r, lv), [h.by_rank[r][0], h.wilds[0]], [r, r])
-    if h.cnt[lv] == 0 and h.w >= 2:
-        add(PAIR, order_of(lv, lv), h.wilds[:2], [lv, lv])
-    for r in (SJ, BJ):
-        if h.cnt[r] >= 2:
-            add(PAIR, order_of(r, lv), h.by_rank[r][:2], [r, r])
-
-    # --- triples ---
-    for r in range(13):
-        if h.cnt[r] >= 1 and h.cnt[r] + h.w >= 3:
-            res = h.pick(r, 3, 0)
-            if res:
-                add(TRIPLE, order_of(r, lv), res[0], res[1])
-
-    # --- full house (三带二) ---
-    for r in range(13):
-        if h.cnt[r] == 0 or h.cnt[r] + h.w < 3:
-            continue
-        wt = max(0, 3 - h.cnt[r])
-        trip = h.pick(r, 3, 0)
-        if not trip:
-            continue
-        for p in range(NUM_RANKS):
-            if p == r:
-                continue
-            if p >= 13:  # joker pair attachment
-                if h.cnt[p] >= 2:
-                    add(FULL, order_of(r, lv), trip[0] + h.by_rank[p][:2],
-                        trip[1] + [p, p])
-                continue
-            wp = max(0, 2 - h.cnt[p])
-            if h.cnt[p] == 0 or wt + wp > h.w:
-                continue
-            pair_cards = h.by_rank[p][:2 - wp] + h.wilds[trip[2]:trip[2] + wp]
-            add(FULL, order_of(r, lv), trip[0] + pair_cards, trip[1] + [p, p])
-
-    # --- straights (and straight flushes) ---
-    for low in range(1, 11):
-        vals = list(range(low, low + 5))
-        ranks = [SEQV_TO_RANK[v] for v in vals]
-        need = sum(1 for r in ranks if h.cnt[r] == 0)
-        if need <= h.w:
-            picked, claim, wu = [], [], 0
-            for r in ranks:
-                if h.cnt[r] > 0:
-                    picked.append(h.by_rank[r][0])
-                else:
-                    picked.append(h.wilds[wu]); wu += 1
-                claim.append(r)
-            # avoid an accidental mono-suit pick (would classify as SFLUSH)
-            suit_fixed = all(rank_of(c) == cr for c, cr in zip(picked, claim))
-            if suit_fixed and len(set(suit_of(c) for c in picked)) == 1:
-                fixed = False
-                for j, r in enumerate(ranks):
-                    for alt in h.by_rank[r]:
-                        if suit_of(alt) != suit_of(picked[j]):
-                            picked[j] = alt
-                            fixed = True
-                            break
-                    if fixed:
-                        break
-                if fixed:
-                    add(STRAIGHT, low, picked, claim)
-            else:
-                add(STRAIGHT, low, picked, claim)
-        # straight flush per suit
-        for s in range(4):
-            miss = [r for r in ranks if (s, r) not in h.by_suit_rank]
-            if len(miss) <= h.w:
-                picked, claim, wu = [], [], 0
-                for r in ranks:
-                    cell = h.by_suit_rank.get((s, r))
-                    if cell:
-                        picked.append(cell[0])
-                    else:
-                        picked.append(h.wilds[wu]); wu += 1
-                    claim.append(r)
-                add(SFLUSH, low, picked, claim)
-
-    # --- plates (三连对) ---
-    for low in range(1, 13):
-        vals = list(range(low, low + 3))
-        ranks = [SEQV_TO_RANK[v] for v in vals]
-        need = sum(max(0, 2 - h.cnt[r]) for r in ranks)
-        if need <= h.w:
-            picked, claim, wu = [], [], 0
-            for r in ranks:
-                k = min(2, h.cnt[r])
-                picked += h.by_rank[r][:k]
-                take = 2 - k
-                picked += h.wilds[wu:wu + take]; wu += take
-                claim += [r, r]
-            add(PLATE, low, picked, claim)
-
-    # --- tubes (钢板) ---
-    for low in range(1, 14):
-        vals = [low, low + 1]
-        ranks = [SEQV_TO_RANK[v] for v in vals]
-        need = sum(max(0, 3 - h.cnt[r]) for r in ranks)
-        if need <= h.w:
-            picked, claim, wu = [], [], 0
-            for r in ranks:
-                k = min(3, h.cnt[r])
-                picked += h.by_rank[r][:k]
-                take = 3 - k
-                picked += h.wilds[wu:wu + take]; wu += take
-                claim += [r, r, r]
-            add(TUBE, low, picked, claim)
-
-    # --- bombs ---
-    for r in range(13):
-        if h.cnt[r] == 0:
-            continue
-        max_n = min(h.cnt[r] + h.w, 10)
-        for n in range(4, max_n + 1):
-            res = h.pick(r, n, 0)
-            if res:
-                add(BOMB, order_of(r, lv), res[0], res[1])
-
-    # --- rocket ---
-    if h.cnt[SJ] >= 2 and h.cnt[BJ] >= 2:
-        add(ROCKET, 0, h.by_rank[SJ][:2] + h.by_rank[BJ][:2],
-            [SJ, SJ, BJ, BJ])
-
-    if lead is None or lead.type == PASS:
-        return out
-    legal = [m for m in out if beats(m, lead, lv)]
-    return [PASS_MOVE] + legal
 
 
 # ---------------------------------------------------------------------------
@@ -383,3 +228,83 @@ def classify_claim(action_cards, claim_cards, lv):
         if low is not None:
             return Move(TUBE, low, list(action_cards), ranks)
     raise ValueError("unclassifiable claim: %r" % (claim_cards,))
+
+
+def gen_moves(cards, lv, lead=None):
+    """Enumerate physical choices and resolve declarations as the app does.
+
+    Natural/wildcard use is a choice, not a greedy minimum. Only identical
+    double-deck copies are collapsed. Ambiguous physical plays use the app's
+    classification precedence: bombs first, strongest full house, lowest run.
+    """
+    from itertools import combinations
+    from functools import lru_cache
+    h = HandIndex(sorted(cards), lv)
+    result = {}
+    priority = {SINGLE:0, PAIR:1, TRIPLE:2, ROCKET:3, BOMB:4,
+                FULL:5, PLATE:6, TUBE:7, SFLUSH:8, STRAIGHT:9}
+
+    @lru_cache(None)
+    def natural_choices(rank, count, suit):
+        pool = [c for c in h.by_rank[rank] if suit < 0 or suit_of(c) == suit]
+        unique = {}
+        for choice in combinations(pool, count):
+            unique.setdefault(tuple(c % 54 for c in sorted(choice, key=lambda c:c % 54)), choice)
+        return tuple(unique.values())
+
+    def select(groups, suit=-1, i=0, used=0, picked=(), claims=()):
+        if i == len(groups):
+            yield list(picked), list(claims)
+            return
+        rank, count = groups[i]
+        remaining = h.w - used if rank < 13 else 0
+        for natural_count in range(max(0, count - remaining), min(count,h.cnt[rank])+1):
+            wild_count = count - natural_count
+            for natural in natural_choices(rank, natural_count, suit):
+                chosen = natural + tuple(h.wilds[used:used+wild_count])
+                yield from select(groups,suit,i+1,used+wild_count,picked+chosen,claims+(rank,)*count)
+
+    def add(kind, key, groups, suit=-1):
+        for picked, claims in select(groups,suit):
+            if kind == PAIR and groups[0][0] != lv and all(is_wildcard(c,lv) for c in picked):
+                continue
+            move = Move(kind,key,picked,claims)
+            signature = tuple(sorted(c % 54 for c in picked))
+            # The app chooses a straight flush whenever naturals share a suit.
+            if kind == STRAIGHT and len({suit_of(c) for c in picked if not is_wildcard(c,lv)}) == 1:
+                continue
+            old = result.get(signature)
+            score = lambda m:(priority[m.type], -m.key if m.type == FULL else m.key)
+            if old is None or score(move) < score(old):
+                result[signature] = move
+
+    # Singles cannot declare a wildcard as an arbitrary rank.
+    for c in sorted(cards):
+        signature = (c % 54,)
+        result.setdefault(signature,Move(SINGLE,order_of(rank_of(c),lv),[c],[rank_of(c)]))
+    for rank in range(15):
+        if h.cnt[rank] or rank == lv:
+            add(PAIR,order_of(rank,lv),[(rank,2)])
+        if rank >= 13 or not h.cnt[rank]:
+            continue
+        add(TRIPLE,order_of(rank,lv),[(rank,3)])
+        for count in range(4,min(10,h.cnt[rank]+h.w)+1):
+            add(BOMB,order_of(rank,lv),[(rank,count)])
+        for pair in range(13):
+            if pair != rank and (h.cnt[pair] or pair == lv):
+                add(FULL,order_of(rank,lv),[(rank,3),(pair,2)])
+    for kind, length, count in [(STRAIGHT,5,1),(PLATE,3,2),(TUBE,2,3)]:
+        for low in range(1,16-length):
+            groups = [(SEQV_TO_RANK[v],count) for v in range(low,low+length)]
+            if sum(max(0,count-h.cnt[r]) for r,_ in groups) > h.w:
+                continue
+            add(kind,low,groups)
+            if kind == STRAIGHT:
+                for suit in range(4):
+                    add(SFLUSH,low,groups,suit)
+    if h.cnt[SJ] >= 2 and h.cnt[BJ] >= 2:
+        add(ROCKET,0,[(SJ,2),(BJ,2)])
+    moves = [result[k] for k in sorted(result)]
+    if lead is None or lead.type == PASS:
+        return moves
+    return [PASS_MOVE] + [m for m in moves if beats(m,lead,lv)]

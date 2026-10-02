@@ -1,0 +1,35 @@
+{
+  "schema": "fabledan-parity-v1",
+  "cases": 855,
+  "actions": 20073,
+  "levels": 13,
+  "types": [
+    "bomb",
+    "full_house",
+    "joker_bomb",
+    "pair",
+    "plate",
+    "single",
+    "straight",
+    "straight_flush",
+    "triple",
+    "tube"
+  ],
+  "maxFeatureError": 0,
+  "maxScoreError": 1.9431186248919374e-7,
+  "exactArgmax": 855,
+  "equivalentArgmax": 855,
+  "truncatedCases": 31,
+  "latencyMs": {
+    "p50": 4.68362500000012,
+    "p95": 10.267457999999806,
+    "max": 60.95458299999973
+  },
+  "inputs": {
+    "cases": "69df7785e201e8734a98324aa6c1259fa625e9a1fae311dc4c44410a00a3d29b",
+    "reference": "52b63441504be322be01e8dc6a77cad269006a19d44e9801cda385c7cf24ab40",
+    "model": "139cac55a88c04fd6e4889aad73419024f365c3e05de3ba7986329d7e7a86242"
+  },
+  "strengthValidated": false,
+  "torchRerun": false
+}
