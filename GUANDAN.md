@@ -25,18 +25,11 @@ python3 -m venv .venv
 
 原上游训练入口保留供后续改造，未完成预算硬停止、完整随机状态恢复和独立评估前，不应用其启动付费训练。
 
-## 同步到游戏
+## 独立评估，不复制到游戏
 
-游戏仓库的 `training/` 是可独立运行的固定副本，不能在两处分别修改训练代码。改动本仓库后，在游戏根目录运行：
+游戏的旧 training 副本和专用接入已撤除。训练代码只在此仓库维护，不再执行历史 sync_fork.py。真实模型接入新的 EVAL-03 外部评估入口，见 [evaluation/README.md](evaluation/README.md)。是否正式集成取决于训练、独立评估和真人验收；当前默认 strategy-v1 保持。
 
-```sh
-python3 training/scripts/sync_fork.py
-python3 training/scripts/sync_fork.py --check
-```
-
-同步清单记录 fork 地址、基准提交、分支、工作区是否含未提交改动，以及每个文件的 SHA-256；未提交版本不能冒充已发布提交。同步不会执行提交或推送。
-
-规则夹具由游戏仓库 `training/scripts/export_rule_fixtures.mjs` 生成，再复制到本仓库 `fixtures/rule-subsets.json`。原始判定来自 TypeScript，而不是 Python 生成器自身。
+历史夹具来自固定 TypeScript 规则生成器。原 training/scripts 路径属于已删除的历史原型；本轮的权威公开决策生成器位于 evaluation/generate_cases.mjs，可直接使用游戏 rules/dist。
 
 ## 仍未完成
 
@@ -53,4 +46,4 @@ python3 training/scripts/sync_fork.py --check
 .venv/bin/python -m unittest discover -s tests -p 'test_*.py'
 ```
 
-夹具生成器在游戏仓库 `training/scripts/export_round_fixtures.mjs`、`export_tribute_fixtures.mjs` 和 `export_advancement_fixtures.mjs`，更新后把相应 JSON 复制回本仓库 `fixtures/`，再同步游戏副本。进还贡动作仍由固定策略选择；这些测试不代表模型已经学会进还贡，也不是全部游戏状态的穷举证明。
+夹具生成器在游戏仓库 `training/scripts/export_round_fixtures.mjs`、`export_tribute_fixtures.mjs` 和 `export_advancement_fixtures.mjs`，更新后把相应 JSON 复制回本仓库 `fixtures/`，无需同步到游戏。进还贡动作仍由固定策略选择；这些测试不代表模型已经学会进还贡，也不是全部游戏状态的穷举证明。
