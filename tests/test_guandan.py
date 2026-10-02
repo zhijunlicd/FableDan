@@ -1,4 +1,4 @@
-"""Local regressions: python -m unittest discover -s training/tests -p test_fork.py."""
+"""Local regressions: python -m unittest discover -s tests -p test_guandan.py."""
 import json
 from pathlib import Path
 import random

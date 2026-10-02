@@ -9,8 +9,6 @@ if(!gameRoot||!model||!out)throw Error('Usage: run_validation.mjs GAME_ROOT MODE
 const root=resolve(dirname(fileURLToPath(import.meta.url)),'..'),game=resolve(gameRoot),output=resolve(out);
 mkdirSync(output,{recursive:true});
 const {createPlan,verifyRuntime}=await import(pathToFileURL(join(game,'packages/bot-simple/evaluation/plan.mjs')));
-const {expectedKeys,hash}=await import(pathToFileURL(join(game,'packages/bot-simple/evaluation/common.mjs')));
-const {runOne}=await import(pathToFileURL(join(game,'packages/bot-simple/evaluation/runner.mjs')));
 const {runDirectory}=await import(pathToFileURL(join(game,'packages/bot-simple/evaluation/cli.mjs')));
 const {fileTree,fileHash}=await import(pathToFileURL(join(game,'packages/bot-simple/evaluation/common.mjs')));
 const rulesFiles=fileTree(join(game,'packages/rules/dist')).map(path=>({path,sha256:fileHash(path)}));

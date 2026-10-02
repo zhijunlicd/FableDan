@@ -29,6 +29,28 @@ FABLEDAN_MODEL=runs/eval-inference/model.node.json node --test evaluation/adapte
 node evaluation/run_validation.mjs "$GAME_ROOT" runs/eval-inference/model.node.json runs/eval-inference/worker
 ```
 
-输入状态来自独立 TS 发牌与合法动作，也含历史小手牌的边界夹具；Python `app_adapter` / `encode_decision` / `NumpyModel` 作独立参考。tokens 与特征要求完全一致，预测容差预设为 `2e-5 + 2e-4*abs(reference)`；精确 argmax 和数值近并列分别记录。Python/Node 完成不代表本轮重新执行 PyTorch，更不代表策略强度。
+输入状态来自独立 TS 发牌与合法动作，也含历史小手牌的边界夹具；Python `app_adapter` / `encode_decision` / `NumpyModel` 作独立参考。tokens 与特征要求完全一致，预测容差预设为 `2e-5 + 2e-4*abs(reference)`；精确 argmax 和数值近并列分别记录。这一步只证明 Python/Node 一致；PyTorch 必须另行执行以下检查，不根据历史导出报告冒充新验收。两类结果均不证明策略强度。
 
 小模型可以验证真实 worker、单局和多轮生命周期；正式网络规模的速度和棋力需后续重新测量。CPU 实现保留清楚的模型边界，若大模型达不到预算，再更换推理后端并通过同一数值差分。
+
+
+## PyTorch 原检查点核对
+
+在本仓库 `.venv` 安装 `requirements.lock.txt`，使用 CPU 即可，不租 GPU：
+
+```sh
+python3 -m venv .venv
+.venv/bin/python -m pip install -r requirements.lock.txt
+OPENBLAS_NUM_THREADS=1 PYTHONPATH=. .venv/bin/python evaluation/verify_torch.py --checkpoint /absolute/original.pt --npz "$NPZ" --cases runs/eval-inference/cases.json --out runs/eval-inference/torch-report.json
+OPENBLAS_NUM_THREADS=1 PYTHONPATH=. .venv/bin/python -m unittest discover -s tests -p 'test_*.py'
+```
+
+逐张量要求 PT 与 NPZ 权重完全相同，逐候选核对 PyTorch 与 NumPy Q 值和精确 argmax。Node 差分使用同一环境生成的 NumPy 参考；两份报告共同构成三方验证。unittest 不执行 `test_all.py` 中的独立脚本函数，不能称为所有上游测试。
+
+## 持续验证与真实结果
+
+GitHub Actions 固定游戏 evaluator 的完整提交，重建权威规则，生成同样的 855 个公开状态，执行编码/数值差分、全部 4 项 Node 回归、6 项 Python 规则/比赛回归及真实 worker。CI 通过 `make_fixture.py` 生成确定性的 **未训练** Transformer 权重，不依赖本机私人 checkpoint，也不把它当训练候选。
+
+本地实际 smoke checkpoint 的新验证报告见 `evaluation/validation/`。它仅训练两轮，足以验证真实格式与生命周期，不能判断棋力，也没有加入游戏产品。首次失败与修复后运行分别保留；记录修复针对多轮轨迹 JSON 哈希，没有改变模型动作。
+
+`run_validation.mjs` 的输出目录必须全新；不要覆盖失败或首次尝试。评估协议及其完整运行依赖由游戏 EVAL-03 冻结，游戏 PR #32 合并前请使用对应已构建功能分支。
