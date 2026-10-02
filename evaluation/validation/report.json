@@ -1,0 +1,190 @@
+{
+  "schema": "train-01-a-validation-v1",
+  "date": "2026-10-02",
+  "runtimeCommit": "b2c3e53279097fc6e8b028671a6355978824bccd",
+  "validationToolsCommit": "d0983f710322841b697f8824f37001f210cfc0d0",
+  "gameCommit": "c78b98364b98e65b1a51ab9610d362388cf57bfc",
+  "originalCheckpointMeta": {
+    "seed": 7,
+    "rounds": 2,
+    "smoke_only": true
+  },
+  "modelConfig": {
+    "schema_version": "guandan-suits-v1",
+    "d_model": 16,
+    "n_blocks": 1,
+    "n_heads": 2,
+    "qk_dim": 8,
+    "v_dim": 8,
+    "ffn_hidden": 32,
+    "hand_hidden": 32,
+    "n_hand_layers": 1,
+    "q_hidden": 32,
+    "n_q_layers": 1,
+    "max_seq": 512,
+    "ntp_weight": 0.02,
+    "vocab": 103,
+    "feat_dim": 404
+  },
+  "casesSha256": "69df7785e201e8734a98324aa6c1259fa625e9a1fae311dc4c44410a00a3d29b",
+  "modelSha256": "139cac55a88c04fd6e4889aad73419024f365c3e05de3ba7986329d7e7a86242",
+  "numpyNode": {
+    "schema": "fabledan-parity-v1",
+    "cases": 855,
+    "actions": 20073,
+    "levels": 13,
+    "types": [
+      "bomb",
+      "full_house",
+      "joker_bomb",
+      "pair",
+      "plate",
+      "single",
+      "straight",
+      "straight_flush",
+      "triple",
+      "tube"
+    ],
+    "maxFeatureError": 0,
+    "maxScoreError": 1.9431186248919374e-07,
+    "exactArgmax": 855,
+    "equivalentArgmax": 855,
+    "truncatedCases": 31,
+    "latencyMs": {
+      "p50": 4.68362500000012,
+      "p95": 10.267457999999806,
+      "max": 60.95458299999973
+    },
+    "inputs": {
+      "cases": "69df7785e201e8734a98324aa6c1259fa625e9a1fae311dc4c44410a00a3d29b",
+      "reference": "52b63441504be322be01e8dc6a77cad269006a19d44e9801cda385c7cf24ab40",
+      "model": "139cac55a88c04fd6e4889aad73419024f365c3e05de3ba7986329d7e7a86242"
+    },
+    "strengthValidated": false,
+    "torchRerun": false
+  },
+  "torchNumpy": {
+    "schema": "fabledan-torch-reference-v1",
+    "torch": "2.14.0",
+    "numpy": "2.5.2",
+    "device": "cpu",
+    "cases": 855,
+    "actions": 20073,
+    "npzWeightsExact": true,
+    "maxTorchNumpyError": 2.4219646860279553e-07,
+    "exactArgmax": 855,
+    "newTorchRun": true,
+    "checkpointMeta": {
+      "seed": 7,
+      "rounds": 2,
+      "smoke_only": true
+    },
+    "checkpointSha256": "c86264fbbe271571bc9a8fc08b388a87acb85fdbfd22cc701fd86dc63d1aba81",
+    "npzSha256": "c5b471e12ac4fc5a55346c616b91f171a62ba464b90a862dd8b5c27980f9f8da",
+    "strengthValidated": false
+  },
+  "worker": {
+    "schema": "fabledan-worker-validation-v1",
+    "summaries": [
+      {
+        "role": "partner",
+        "runs": 4,
+        "completed": 4,
+        "faults": {
+          "timeout": 0,
+          "errorResponse": 0,
+          "rejectedPromise": 0,
+          "invalidMove": 0,
+          "fallback": 0
+        },
+        "verdict": "inconclusive"
+      },
+      {
+        "role": "opponent",
+        "runs": 4,
+        "completed": 4,
+        "faults": {
+          "timeout": 0,
+          "errorResponse": 0,
+          "rejectedPromise": 0,
+          "invalidMove": 0,
+          "fallback": 0
+        },
+        "verdict": "inconclusive"
+      },
+      {
+        "role": "partner/match-A",
+        "runs": 2,
+        "completed": 2,
+        "rounds": [
+          2,
+          4
+        ],
+        "faults": {
+          "timeout": 0,
+          "errorResponse": 0,
+          "rejectedPromise": 0,
+          "invalidMove": 0,
+          "fallback": 0
+        },
+        "verdict": "inconclusive"
+      }
+    ],
+    "trainedStrengthValidated": false,
+    "tributePolicy": "fixed; not learned",
+    "rulesFiles": [
+      {
+        "path": "/Users/ansli/D/code/Guandan_opencode-wt-eval-current-model/packages/rules/dist/cards.js",
+        "sha256": "a87606da2db0c27e8a7630ed0fa8f38f2bfe36f50b68c9b6e2c80df6fc1bf894"
+      },
+      {
+        "path": "/Users/ansli/D/code/Guandan_opencode-wt-eval-current-model/packages/rules/dist/game.js",
+        "sha256": "8cceae9be586c3ea370d5a3451b331b4b438110c820edb4aa6136fd0a6272ced"
+      },
+      {
+        "path": "/Users/ansli/D/code/Guandan_opencode-wt-eval-current-model/packages/rules/dist/index.js",
+        "sha256": "4558d1d6ccecc8565f400832ad4cd2d41e6bbe81d05f6bbdea452a6cd4c209fb"
+      },
+      {
+        "path": "/Users/ansli/D/code/Guandan_opencode-wt-eval-current-model/packages/rules/dist/patterns.js",
+        "sha256": "6e2b7de68589a2f084ea42145b5a795635d30c191ffc0855e87db4dd4cd55f0b"
+      },
+      {
+        "path": "/Users/ansli/D/code/Guandan_opencode-wt-eval-current-model/packages/rules/dist/types.js",
+        "sha256": "b110e9256019d5140d27bcbb6b3644ee1c9b3ef0e7adec68fb9659ab2c002b23"
+      },
+      {
+        "path": "/Users/ansli/D/code/Guandan_opencode-wt-eval-current-model/packages/rules/dist/validation.js",
+        "sha256": "bbe5ac1c8c53aa05a8fb1914961888b7d77dc3bb2ee739b9341ed2eef160fae7"
+      },
+      {
+        "path": "/Users/ansli/D/code/Guandan_opencode-wt-eval-current-model/packages/rules/dist/view.js",
+        "sha256": "e2536f73093143545009864ae02efc82d57fb228d186c653c8bbf030f2e76cbe"
+      }
+    ]
+  },
+  "tests": {
+    "nodeRealCheckpoint": {
+      "passed": 4,
+      "skipped": 0
+    },
+    "pythonUnittest": {
+      "passed": 17
+    },
+    "gameEvaluation": {
+      "passed": 22
+    }
+  },
+  "firstAttempt": {
+    "directory": "real-checkpoint/worker",
+    "gameCommit": "d911259bb7f510ae0f189e61bfc4676004927c9a",
+    "modelRunsCompleted": 10,
+    "persistedTraceVerificationPassed": false,
+    "cause": "Undefined returnedCard optional field lost during JSON serialization; generic trace hash fixed, no action policy change"
+  },
+  "rawArtifactsDirectory": "/Users/ansli/D/code/guandan_local_artifacts/train-01-a",
+  "playingStrengthValidated": false,
+  "newTrainingRun": false,
+  "cloudSpendUsd": 0,
+  "latencyLimitations": "Small d_model=16 single-block model; parity latency includes encoding, authority classification, assertions and inference, not production or large-model latency."
+}
