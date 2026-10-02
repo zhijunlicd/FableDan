@@ -49,8 +49,11 @@ OPENBLAS_NUM_THREADS=1 PYTHONPATH=. .venv/bin/python -m unittest discover -s tes
 
 ## 持续验证与真实结果
 
-GitHub Actions 固定游戏 evaluator 的完整提交，重建权威规则，生成同样的 855 个公开状态，执行编码/数值差分、全部 4 项 Node 回归、6 项 Python 规则/比赛回归及真实 worker。CI 通过 `make_fixture.py` 生成确定性的 **未训练** Transformer 权重，不依赖本机私人 checkpoint，也不把它当训练候选。
+默认 GitHub Actions 使用 independently authored 的合成输入，覆盖 13 级、10 牌型与历史截断，执行编码/数值差分、全部 4 项 Node 回归和 6 项既有 Python 规则/比赛回归。合成输入只测试表示与推理，不保证穷举合法动作或模拟真实对局；默认 CI 不执行游戏 worker，也不替代本地 855 状态的真实权威规则验证。CI 通过 `make_fixture.py` 生成确定性的 **未训练** Transformer 权重，不依赖本机私人 checkpoint，也不把它当训练候选。
 
 本地实际 smoke checkpoint 的新验证报告见 `evaluation/validation/`。它仅训练两轮，足以验证真实格式与生命周期，不能判断棋力，也没有加入游戏产品。首次失败与修复后运行分别保留；记录修复针对多轮轨迹 JSON 哈希，没有改变模型动作。
 
 `run_validation.mjs` 的输出目录必须全新；不要覆盖失败或首次尝试。评估协议及其完整运行依赖由游戏 EVAL-03 冻结，游戏 PR #32 合并前请使用对应已构建功能分支。
+
+
+游戏仓库为私有仓库，FableDan 的默认 GITHUB_TOKEN 无权跨仓库取代码。默认 CI 无须跨仓库凭据或复制案例，独立编写的 synthetic_cases.mjs 不读取私有游戏或其生成数据。完整游戏差分与 worker 请使用前面的本地命令；远程集成待另行配置授权，尚未执行。首次远程 CI 在私有仓库 checkout 失败，未执行测试，记录保留在 PR 历史。

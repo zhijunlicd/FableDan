@@ -5,53 +5,36 @@ permissions:
 jobs:
   parity:
     runs-on: ubuntu-latest
-    timeout-minutes: 15
+    timeout-minutes: 10
     steps:
       - uses: actions/checkout@v4
-      - uses: actions/checkout@v4
-        with:
-          repository: zhijunlicd/Guandan_opencode
-          ref: c78b98364b98e65b1a51ab9610d362388cf57bfc
-          path: guandan
       - uses: actions/setup-node@v4
         with:
           node-version: '22'
-      - uses: pnpm/action-setup@v4
-        with:
-          version: '9.15.9'
       - uses: actions/setup-python@v5
         with:
           python-version: '3.12'
-      - name: Install and build frozen authority rules and evaluator
-        working-directory: guandan
-        run: |
-          pnpm install --frozen-lockfile
-          pnpm --filter @guandan/rules build
-          pnpm --filter @guandan/bot-sdk build
-          pnpm --filter @guandan/bot-simple build
-      - name: Prepare synthetic CI fixture (not a trained candidate)
+      - name: Prepare synthetic fixtures (not a trained candidate or game corpus)
         run: |
           python -m pip install numpy==2.5.2
           PYTHONPATH=. python evaluation/make_fixture.py --out runs/ci/model.npz
           PYTHONPATH=. python evaluation/export_model.py --source runs/ci/model.npz --output runs/ci/model.node.json
-          node evaluation/generate_cases.mjs "$PWD/guandan" runs/ci/cases.json
-      - name: Encoding and real Transformer numerical regression
+          node evaluation/synthetic_cases.mjs runs/ci/cases.json
+      - name: Independent encoding and Transformer numerical regression
         env:
           OPENBLAS_NUM_THREADS: '1'
           FABLEDAN_MODEL: runs/ci/model.node.json
           PYTHONPATH: .
         run: |
           python evaluation/reference.py --cases runs/ci/cases.json --model runs/ci/model.npz --out runs/ci/reference.jsonl
-          node evaluation/verify_parity.mjs "$PWD/guandan" runs/ci/cases.json runs/ci/reference.jsonl runs/ci/model.node.json runs/ci/parity-report.json
+          node evaluation/verify_parity.mjs --synthetic runs/ci/cases.json runs/ci/reference.jsonl runs/ci/model.node.json runs/ci/parity-report.json
           node --test evaluation/adapter.test.mjs
           python -m unittest discover -s tests -p 'test_*parity.py'
           python -m unittest discover -s tests -p test_match.py
-      - name: Isolated worker, tribute and persisted multi-round validation
-        run: node evaluation/run_validation.mjs "$PWD/guandan" runs/ci/model.node.json runs/ci/worker
-      - name: Preserve validation reports and first attempts
+      - name: Preserve synthetic regression reports
         if: always()
         uses: actions/upload-artifact@v4
         with:
-          name: evaluation-adapter-evidence
+          name: evaluation-adapter-regression
           path: runs/ci
           retention-days: 14
